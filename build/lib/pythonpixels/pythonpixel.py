@@ -1,8 +1,19 @@
 import requests
 import time
 from PIL import Image
+import typing
+from io import BytesIO
 
-class RateLimitError(BaseException):
+class RateLimitException(Exception):
+    """
+    An exception class to use whenever cooldown occurs
+    """
+    pass
+
+class OutOfBoundsException(Exception):
+    """
+    An exception class to use whenever input is out of bounds
+    """
     pass
 
 class Client:
@@ -34,12 +45,19 @@ class Client:
         int base 16 - The color of the requested pixel
         """
 
+        if self.get_limit == 0:
+            time.sleep(self.get_timeout + 1)
+
+        with self.__http.get(self.base + "/get_size", headers=self.headers) as resp:
+            data = resp.json()
+            size = (data["width"], data["height"])
+            if x > size[0] or y > size[1]:
+                raise OutOfBoundsException("The selected pixel is out of bounds")
+
         data = {
             "x": x,
             "y": y
         }
-        if self.get_limit == 0:
-            time.sleep(self.get_timeout + 1)
 
         with self.__http.get(self.base + "/get_pixel", headers = self.headers, params=data) as resp:
             data = resp.json()
@@ -50,7 +68,7 @@ class Client:
             except KeyError:
                 self.get_limit = 0
                 self.get_timeout = int(headers['cooldown-reset'])
-                raise RateLimitError(f"Rate limited by server but internal values not updated. Please wait {self.get_timeout}")
+                raise RateLimitException(f"Rate limited by server but internal values not updated. Please wait {self.get_timeout}")
             return int(f"0x{data['rgb']}", base=16)
     
     def get_canvas(self, scale=1):
@@ -76,7 +94,7 @@ class Client:
             except KeyError:
                 self.gets_limit = 0
                 self.gets_timeout = int(headers['cooldown-reset'])
-                raise RateLimitError(f"Rate limited by server but internal values not updated. Please wait {self.gets_timeout}")
+                raise RateLimitException(f"Rate limited by server but internal values not updated. Please wait {self.gets_timeout}")
             with self.__http.get(self.base + "/get_size", headers= self.headers) as resps:
                 size = resps.json()
                 im =  Image.frombytes(mode="RGB", size=(size['width'], size['height']), data=stream)
@@ -112,6 +130,13 @@ class Client:
         Returns:
         None
         """
+
+        with self.__http.get(self.base + "/get_size", headers=self.headers) as resp:
+            data = resp.json()
+            size = (data["width"], data["height"])
+            if x > size[0] or y > size[1]:
+                raise OutOfBoundsException("The selected pixel is out of bounds")
+
         data = {
             "x": x,
             "y": y,
@@ -128,7 +153,7 @@ class Client:
                 self.post_limit = 0
                 self.post_timeout = int(headers['cooldown-reset'])
 
-                raise RateLimitError(f"Rate limited by server but internal values not updated. Please wait {self.post_timeout}")
+                raise RateLimitException(f"Rate limited by server but internal values not updated. Please wait {self.post_timeout}")
             return
 
     def get_limits(self):
@@ -151,4 +176,46 @@ class Client:
         }
         return limits
 
+    def set_picture(self, x: int, y: int, img: typing.Union[str, Image.Image]):
+        """
+        Starts a job to add a picture with offset x an y. Img can either be a file directory, an direct URL (Only HTTP supported) or a pillow.Image
+
+        Params:
+        x: int - The x offset
+        y: int- The y offset
+        img: typing.Union[str, pillow.Image.Image] - The image to upload. Can either be a path, a HTTP direct image link or a pillow image instance
+
+        Returns:
+        None
+        """
+        if isinstance(img, str):                        
+            if img.startswith(("http://", "https://")):
+                with self.__http.get(img, stream=True) as r:
+                    if r.status_code == 200:
+                        image = Image.open(r.raw)
+                    else:
+                        raise TypeError("The given image could not be found")
+            else:
+                try:
+                    image = Image.open(img)
+                except OSError:
+                    raise TypeError("The given image could not be found")
+
+        else:
+            image = img
+
+        with self.__http.get(self.base + "/get_size", headers=self.headers) as resp:
+            data = resp.json()
+            size = (data["width"], data["height"])
+            if x + image.width > size[0] or y + image.height > size[1]:
+                raise OutOfBoundsException("The image is out of bounds")
+        
+        for x in range(image.width):
+            for y in range(image.height):
+                r, g, b, a = image.getpixel((x,y))
+                if a == 0:
+                    continue
+                color = hex(r)[2:] + hex(g)[2:] + hex(b)[2:]
+
+                self.set_pixel(x, y, int(color, base=16))
 

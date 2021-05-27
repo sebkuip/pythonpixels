@@ -73,6 +73,19 @@ Returns:
 None
 
 ```py
+client.set_image(x, y, img)
+```
+Starts a job to add a picture with offset x an y. Img can either be a file directory, an direct URL (Only HTTP supported) or a pillow.Image
+
+Params:
+x: int - The x offset
+y: int- The y offset
+img: typing.Union[str, pillow.Image.Image] - The image to upload. Can either be a path, a HTTP direct image link or a pillow image instance
+
+Returns:
+None
+
+```py
 client.get_limits()
 ```
 

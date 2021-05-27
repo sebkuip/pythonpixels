@@ -8,7 +8,7 @@ setup(
     packages=["pythonpixels",],
     install_requires=["pillow",],
     description="An API wrapper for the python discord pixels project",
-    version="1.1.15",
+    version="1.2.0",
     long_description=long_des,
     long_description_content_type="text/markdown",
     license="MIT",
