@@ -73,7 +73,7 @@ Returns:
 None
 
 ```py
-client.set_image(x, y, img)
+client.set_picture(x, y, img)
 ```
 Starts a job to add a picture with offset x an y. Img can either be a file directory, an direct URL (Only HTTP supported) or a pillow.Image
 
