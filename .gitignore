@@ -1,0 +1,5 @@
+*.whl
+*.txt
+*.egg
+*.tar.gz
+pythonpixels.egg-info/PKG-INFO
