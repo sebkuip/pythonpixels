@@ -227,6 +227,9 @@ class Client:
                 if a == 0:
                     continue
                 color = hex(r)[2:] + hex(g)[2:] + hex(b)[2:]
+                cur = self.get_pixel(x,y)
+                if cur == int(color, base=16):
+                    continue
 
                 self.set_pixel(x, y, int(color, base=16))
 
