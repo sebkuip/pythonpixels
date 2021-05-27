@@ -142,6 +142,17 @@ class Client:
             "y": y,
             "rgb": hex(color)[2:].upper()
         }
+
+        with self.__http.get(self.base + "/get_pixel", headers=self.headers, params={"x": x, "y": y}) as resp:
+            jdata = resp.json()
+            if data["rgb"] == jdata["rgb"]:
+                return
+
+        if len(data["rgb"]) > 6:
+            raise TypeError("The given color is too long")
+        elif len(data["rgb"]) < 6:
+            while len(data["rgb"]) < 6:
+                data["rgb"] = "0" + data["rgb"]
         if self.post_limit == 0:
             time.sleep(self.post_timeout + 1)
         with self.__http.post(self.base + "/set_pixel", headers=self.headers, json=data) as resp:
