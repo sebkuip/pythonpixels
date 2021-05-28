@@ -46,6 +46,7 @@ class Client:
         """
 
         if self.get_limit == 0:
+            print(f"Waiting {self.get_timeout} seconds on /get_pixel rate limit")
             time.sleep(self.get_timeout + 1)
 
         with self.__http.get(self.base + "/get_size", headers=self.headers) as resp:
@@ -84,6 +85,7 @@ class Client:
         if scale <=0:
             raise TypeError("Scale must be a positive integer")
         if self.gets_limit == 0:
+            print(f"Waiting {self.gets_timeout} seconds on /get_pixels rate limit")
             time.sleep(self.gets_timeout+ 1)
         with self.__http.get(self.base + "/get_pixels", headers=self.headers) as resp:
             stream = bytes(resp.content)
@@ -118,42 +120,47 @@ class Client:
             data = resp.json()
             return (data["width"], data["height"])
 
-    def set_pixel(self, x: int, y: int, color: int):
+    def set_pixel(self, x: int, y: int, color: typing.Union[int, str]):
         """
         Sets a pixel on the canvas
 
         Params:
         x: int - The x position of the pixel
         y: int - The y position of the pixel
-        color: int - the RGB colorcode of the pixel
+        color: int/str - the RGB colorcode of the pixel
 
         Returns:
         None
         """
-
+        if isinstance(color, str):
+            color = color.removeprefix("0x")
+            if len(color) != 6:
+                raise TypeError(f"Invalid color '{color}'")
+        else:
+            color = hex(color)[2:].upper()
         with self.__http.get(self.base + "/get_size", headers=self.headers) as resp:
             data = resp.json()
             size = (data["width"], data["height"])
-            if x > size[0] or y > size[1]:
+            if x > size[0] or y > size[1] or x < 0 or y < 0:
                 raise OutOfBoundsException("The selected pixel is out of bounds")
 
         data = {
             "x": x,
             "y": y,
-            "rgb": hex(color)[2:].upper()
+            "rgb": color
         }
 
-        with self.__http.get(self.base + "/get_pixel", headers=self.headers, params={"x": x, "y": y}) as resp:
-            jdata = resp.json()
-            if data["rgb"] == jdata["rgb"]:
-                return
+        curcolor = self.get_pixel(x, y)
+        if data["rgb"] == hex(curcolor)[2:]:
+            return
 
         if len(data["rgb"]) > 6:
-            raise TypeError("The given color is too long")
+            raise TypeError("The given color is invalid")
         elif len(data["rgb"]) < 6:
             while len(data["rgb"]) < 6:
                 data["rgb"] = "0" + data["rgb"]
         if self.post_limit == 0:
+            print(f"Waiting {self.post_timeout} seconds on /set_pixel rate limit")
             time.sleep(self.post_timeout + 1)
         with self.__http.post(self.base + "/set_pixel", headers=self.headers, json=data) as resp:
             headers = resp.headers
@@ -187,13 +194,13 @@ class Client:
         }
         return limits
 
-    def set_picture(self, x: int, y: int, img: typing.Union[str, Image.Image]):
+    def set_picture(self, ox: int, oy: int, img: typing.Union[str, Image.Image]):
         """
         Starts a job to add a picture with offset x an y. Img can either be a file directory, an direct URL (Only HTTP supported) or a pillow.Image
 
         Params:
-        x: int - The x offset
-        y: int- The y offset
+        ox: int - The x offset
+        oy: int- The y offset
         img: typing.Union[str, pillow.Image.Image] - The image to upload. Can either be a path, a HTTP direct image link or a pillow image instance
 
         Returns:
@@ -218,18 +225,25 @@ class Client:
         with self.__http.get(self.base + "/get_size", headers=self.headers) as resp:
             data = resp.json()
             size = (data["width"], data["height"])
-            if x + image.width > size[0] or y + image.height > size[1]:
+            if ox + image.width > size[0] or oy + image.height > size[1] or ox < 0 or oy < 0:
                 raise OutOfBoundsException("The image is out of bounds")
         
         for x in range(image.width):
             for y in range(image.height):
-                r, g, b, a = image.getpixel((x,y))
+                color = image.getpixel((x,y))
+                r = color[0]
+                g = color[1]
+                b = color[2]
+                try:
+                    a = color[3]
+                except IndexError:
+                    a = 255
                 if a == 0:
                     continue
-                color = hex(r)[2:] + hex(g)[2:] + hex(b)[2:]
-                cur = self.get_pixel(x,y)
+                color = f"{r:02X}{g:02X}{b:02X}"
+                cur = self.get_pixel(x + ox,y + oy)
                 if cur == int(color, base=16):
                     continue
 
-                self.set_pixel(x, y, int(color, base=16))
+                self.set_pixel(x, y, color)
 
