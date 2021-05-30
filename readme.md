@@ -4,7 +4,7 @@
 
 ## Requirements
 
-pillow and request are required for this library
+pillow, rich and request are required for this library. These are automatically installed with this library.
 
 ## Usage
 
@@ -32,7 +32,7 @@ x: int - The x position of the pixel
 y: int - The y position of the pixel
 
 Returns:
-int base 16 - The color of the requested pixel
+int - The color of the requested pixel
 
 ```py
 client.get_canvas(scale)

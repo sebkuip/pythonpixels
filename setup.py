@@ -6,9 +6,9 @@ with open("README.md", "r") as file:
 setup(
     name="pythonpixels",
     packages=["pythonpixels",],
-    install_requires=["pillow",],
+    install_requires=["pillow","rich"],
     description="An API wrapper for the python discord pixels project",
-    version="1.2.10",
+    version="1.2.11",
     long_description=long_des,
     long_description_content_type="text/markdown",
     license="MIT",
