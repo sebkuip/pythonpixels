@@ -2,7 +2,6 @@ import requests
 import time
 from PIL import Image
 import typing
-import math
 from rich.progress import track
 import datetime
 
@@ -34,6 +33,7 @@ class Client:
             else:
                 self.post_timeout = datetime.datetime.now()
 
+        """
         with self.__http.head(self.base + "/get_pixel", headers=self.headers) as resp:
             headers = resp.headers
             try:
@@ -55,7 +55,8 @@ class Client:
                 self.gets_timeout = datetime.datetime.now() + datetime.timedelta(seconds=float(headers['requests-reset']))
             else:
                 self.gets_timeout = datetime.datetime.now()
-
+        """
+    
     def get_pixel(self, x: int, y: int):
         """
         Returns the hexadecimal color code of the given pixel
@@ -67,7 +68,7 @@ class Client:
         Returns:
         int - The color of the requested pixel
         """
-
+        """
         if self.get_limit == 0 and self.get_timeout > datetime.datetime.now():
             timer = self.get_timeout - datetime.datetime.now()
             for n in track(range(int(timer.total_seconds()) + 1), "[cyan bold]Awaiting /get_pixel rate limit.."):
@@ -94,7 +95,9 @@ class Client:
                 self.get_limit = 0
                 self.get_timeout = datetime.datetime.now() + datetime.timedelta(seconds=float(headers['cooldown-reset']))
             return int(f"0x{data['rgb']}", base=16)
-    
+        """
+        raise AttributeError("This method is currently not in use")
+
     def get_canvas(self, scale=1):
         """
         Fetch the entire canvas and returns it as a pillow Image instance. Optionally resize it by a scale factor
@@ -104,6 +107,7 @@ class Client:
 
         Returns:
         pillow.Image - The current canvas
+        """
         """
         if scale <=0:
             raise TypeError("Scale must be a positive integer")
@@ -124,6 +128,8 @@ class Client:
                 im =  Image.frombytes(mode="RGB", size=(size['width'], size['height']), data=resp.content)
                 im = im.resize((im.size[0]*scale, im.size[1]*scale), Image.NEAREST)
                 return im
+        """
+        raise AttributeError("This method is currently not in use")
 
 
 
@@ -172,9 +178,9 @@ class Client:
             "rgb": color
         }
 
-        curcolor = self.get_pixel(x, y)
-        if data["rgb"] == hex(curcolor)[2:]:
-            return
+        # curcolor = self.get_pixel(x, y)
+        # if data["rgb"] == hex(curcolor)[2:]:
+        #     return
 
         if len(data["rgb"]) > 6:
             raise TypeError("The given color is invalid")
@@ -262,9 +268,9 @@ class Client:
                 if a == 0:
                     continue
                 color = f"{r:02X}{g:02X}{b:02X}"
-                cur = self.get_pixel(x + ox,y + oy)
-                if cur == int(color, base=16):
-                    continue
+                # cur = self.get_pixel(x + ox,y + oy)
+                # if cur == int(color, base=16):
+                #     continue
 
                 self.set_pixel(x, y, color)
 
