@@ -161,11 +161,6 @@ class Client:
                 raise TypeError(f"Invalid color '{color}'")
         else:
             color = hex(color)[2:].upper()
-        with self.__http.get(self.base + "/get_size", headers=self.headers) as resp:
-            data = resp.json()
-            size = (data["width"], data["height"])
-            if x > size[0] or y > size[1] or x < 0 or y < 0:
-                raise OutOfBoundsException("The selected pixel is out of bounds")
 
         data = {
             "x": x,
